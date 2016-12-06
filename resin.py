@@ -22,10 +22,10 @@ import glob
 # CONFIG #
 ##########
 
-SEASON = "season16"
+SEASON = "season15"
 YD_SCHOOL = "AYD" # for the player profile, based on scrapped URL (game and tournament comes from tournament name)
-BASE_AYD_URL = "http://ayd.yunguseng.com/"
-BASE_AYD_SEASON_URL = BASE_AYD_URL + SEASON 
+BASE_AYD_URL = "http://ayd.yunguseng.com"
+BASE_AYD_SEASON_URL = BASE_AYD_URL +  '/' + SEASON 
 
 AYD_RATING_URL = "http://ayd.yunguseng.com/rating.html"
 
@@ -69,6 +69,10 @@ def parse_ratings_page(rating_page_url):
 		this_player['name'] = cells[2].find("a", href=True).get_text()
 		this_player['active'] = re.match('.+\(P\)', cells[2].get_text()) is not None
 		this_player['profile_link'] = BASE_AYD_URL + cells[2].find("a", href=True)['href']
+
+		global BASE_AYD_SEASON_URL
+		BASE_AYD_SEASON_URL = this_player['profile_link'].split("/profile")[0] 
+
 		this_player['rating'] = cells[4].get_text()
 		this_player['check_time'] = datetime.now()
 
@@ -116,7 +120,7 @@ def parse_player_profile_page(profile_url, download_games = False):
 		game['tournament'] = cells[1].get_text()
 		tournament_temp =  cells[1].find("a", href=True)
 		if tournament_temp is not None:
-			game['tournament_link'] = cells[1].find("a", href=True)['href']
+			game['tournament_link'] = BASE_AYD_URL + cells[1].find("a", href=True)['href']
 			game['tournament_id'] = int(game['tournament_link'].split("id=")[1])
 		else:
 			game['tournament_link'] = None
@@ -148,7 +152,8 @@ def parse_player_profile_page(profile_url, download_games = False):
 		if(game['round'] in ["1","2","3","4","5"]):
 			game['white'] = cells[3].get_text()
 			game['black'] = cells[4].get_text()
-			result = cells[5].get_text().split("+")
+			game['result'] = cells[5].get_text()
+			result = game['result'].split("+")
 			game['win_score'] = result[1].lower()
 			game['win_color'] = expand_color(result[0])
 			if(game['win_color'] == "black"):
@@ -156,7 +161,7 @@ def parse_player_profile_page(profile_url, download_games = False):
 			else:
 				game['win_player'] = game['white']
 			if(game['win_score'] != "forfeit"):
-				game['game_link'] = "/" + cells[5].find("a", href=True)['href']
+				game['game_link'] = BASE_AYD_SEASON_URL + "/" + cells[5].find("a", href=True)['href']
 			else:
 				game['game_link'] = None
 			game['sgf_filename'] =  game['white'] + "_" + game['black'] + "_" + str(game['tournament_id']) + ".sgf"
@@ -346,7 +351,7 @@ for player in players_to_update:
 						print "[download] fetching %s from %s" % (game['sgf_filename'], game['game_link'])
 					if WAIT_TIME != 0:
 						time.sleep(WAIT_TIME)
-					urlretrieve(BASE_AYD_SEASON_URL + game['game_link'], GAME_FOLDER + game['sgf_filename'])
+					urlretrieve(game['game_link'], GAME_FOLDER + game['sgf_filename'])
 				else:
 					if DEBUG_MODE:
 						print "[download] found %s is already downloaded, skipping" % (game['sgf_filename'])
