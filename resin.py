@@ -35,7 +35,7 @@ WAIT_TIME = 2
 
 DATABASE_NAME = "ayd"
 USERNAME = "felipe"
-RECREATE_DB = False
+RECREATE_DB = True
 DEBUG_MODE = True
 
 #############
@@ -176,6 +176,7 @@ def parse_player_profile_page(profile_url, download_games = False):
 			game['sgf_filename'] = None
 			game['white'] = None
 			game['black'] = None
+			game['result'] = None
 			game['win_player'] = None
 			game['win_score'] = None
 			game['win_color'] = None
@@ -223,6 +224,7 @@ def create_DB_structure():
 	             "round SMALLINT, " \
 	             "white TEXT, " \
 	             "black TEXT, " \
+	             "result TEXT, " \
 	             "win_color TEXT, "\
 	             "win_player TEXT, "\
 	             "win_score TEXT, "\
@@ -238,7 +240,7 @@ def create_DB_structure():
 def insert_game(game_record):
 	db_cur = db_con.cursor()
 	db_query = "INSERT INTO games VALUES(%(school)s, %(season)s, %(tournament_id)s, %(league)s, %(month)s, %(year)s, %(round)s, %(white)s, %(black)s, " \
-				"%(win_color)s, %(win_player)s, %(win_score)s, %(game_link)s, %(sgf_filename)s);"
+				"%(result)s, %(win_color)s, %(win_player)s, %(win_score)s, %(game_link)s, %(sgf_filename)s);"
 	res = db_cur.execute(db_query, game_record)
 	db_con.commit()
 
@@ -328,7 +330,7 @@ else:
 #games_to_insert = []
 player_count = 0
 
-for player in players_to_update:
+for player in players_to_update[0:3]:
 	games_processed = 0
 	player_count += 1
 
@@ -381,6 +383,7 @@ for player in players_to_update:
 				'month': game['month'],
 				'year': game['year'],
 				'round': game['round'],
+				'result': game['result'],
 				'white': game['white'],
 				'black': game['black'],
 				'win_color': game['win_color'],
