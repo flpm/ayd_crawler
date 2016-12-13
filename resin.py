@@ -22,7 +22,7 @@ import glob
 # CONFIG #
 ##########
 
-SEASON = "season15"
+SEASON = "season16"
 YD_SCHOOL = "AYD" # for the player profile, based on scrapped URL (game and tournament comes from tournament name)
 BASE_AYD_URL = "http://ayd.yunguseng.com"
 BASE_AYD_SEASON_URL = BASE_AYD_URL +  '/' + SEASON 
@@ -31,11 +31,13 @@ AYD_RATING_URL = "http://ayd.yunguseng.com/rating.html"
 
 DOWNLOAD_GAMES = True
 GAME_FOLDER = "./ayd_games/"
-WAIT_TIME = 2
+WAIT_TIME = 1
 
 DATABASE_NAME = "ayd"
+DATABASE_HOST = 'localhost'
 USERNAME = "felipe"
-RECREATE_DB = True
+PASSWORD = None
+RECREATE_DB = False
 DEBUG_MODE = True
 
 #############
@@ -263,7 +265,10 @@ def insert_player(player):
 ########
 
 # Open database connection
-db_con = psycopg2.connect("dbname=" + DATABASE_NAME + " user=" + USERNAME)
+if(PASSWORD):
+	db_con = psycopg2.connect("dbname=" + DATABASE_NAME + " user=" + USERNAME + " host=" + DATABASE_HOST + " password=" + PASSWORD)
+else:
+	db_con = psycopg2.connect("dbname=" + DATABASE_NAME + " user=" + USERNAME + " host=" + DATABASE_HOST)
 
 if RECREATE_DB:
 	if DEBUG_MODE:
@@ -330,7 +335,7 @@ else:
 #games_to_insert = []
 player_count = 0
 
-for player in players_to_update[0:3]:
+for player in players_to_update:
 	games_processed = 0
 	player_count += 1
 
