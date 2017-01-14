@@ -33,12 +33,14 @@ DOWNLOAD_GAMES = True
 GAME_FOLDER = "./ayd_games/"
 WAIT_TIME = 1
 
-DATABASE_NAME = "ayd"
+DATABASE_NAME = "ayd2"
 DATABASE_HOST = 'localhost'
 USERNAME = "felipe"
 PASSWORD = None
-RECREATE_DB = False
+RECREATE_DB = True
+
 DEBUG_MODE = True
+DEBUG_LEVEL = 1
 
 #############
 # FUNCTIONS #
@@ -194,8 +196,8 @@ def parse_player_profile_page(profile_url, download_games = False):
 
 def create_DB_structure():
 	db_script = "BEGIN TRANSACTION;\n"
-	db_script += "DROP TABLE IF EXISTS \"tournaments\";\n"
-	db_script += "CREATE TABLE \"tournaments\"(" \
+	db_script += "DROP TABLE IF EXISTS \"ayd_tournaments\";\n"
+	db_script += "CREATE TABLE \"ayd_tournaments\"(" \
 				 "school TEXT, " \
 				 "season SMALLINT, " \
 				 "tournament TEXT, " \
@@ -205,8 +207,8 @@ def create_DB_structure():
 	             "tournament_link TEXT, " \
 	             "tournament_id SMALLINT primary key);\n"
 
-	db_script += "DROP TABLE IF EXISTS \"players\";\n"
-	db_script += "CREATE TABLE \"players\"(" \
+	db_script += "DROP TABLE IF EXISTS \"ayd_players\";\n"
+	db_script += "CREATE TABLE \"ayd_players\"(" \
 				 "school TEXT, " \
 				 "name TEXT, " \
 	             "nick TEXT primary key, " \
@@ -215,8 +217,8 @@ def create_DB_structure():
 	             "profile_link TEXT, "\
 	             "check_time TEXT);\n"
 
-	db_script += "DROP TABLE IF EXISTS \"games\";\n"
-	db_script += "CREATE TABLE \"games\"(" \
+	db_script += "DROP TABLE IF EXISTS \"ayd_games\";\n"
+	db_script += "CREATE TABLE \"ayd_games\"(" \
 				 "school TEXT, " \
 				 "season SMALLINT, " \
 				 "tournament_id SMALLINT, " \
@@ -241,20 +243,20 @@ def create_DB_structure():
 
 def insert_game(game_record):
 	db_cur = db_con.cursor()
-	db_query = "INSERT INTO games VALUES(%(school)s, %(season)s, %(tournament_id)s, %(league)s, %(month)s, %(year)s, %(round)s, %(white)s, %(black)s, " \
+	db_query = "INSERT INTO ayd_games VALUES(%(school)s, %(season)s, %(tournament_id)s, %(league)s, %(month)s, %(year)s, %(round)s, %(white)s, %(black)s, " \
 				"%(result)s, %(win_color)s, %(win_player)s, %(win_score)s, %(game_link)s, %(sgf_filename)s);"
 	res = db_cur.execute(db_query, game_record)
 	db_con.commit()
 
 def insert_tournament(tournament_record):
 	db_cur = db_con.cursor()
-	db_query = "INSERT INTO tournaments VALUES(%(school)s, %(season)s, %(tournament)s, %(league)s, %(month)s, %(year)s, %(tournament_link)s, %(tournament_id)s);"
+	db_query = "INSERT INTO ayd_tournaments VALUES(%(school)s, %(season)s, %(tournament)s, %(league)s, %(month)s, %(year)s, %(tournament_link)s, %(tournament_id)s);"
 	res = db_cur.execute(db_query, tournament_record)
 	db_con.commit()
 
 def insert_player(player):
 	db_cur = db_con.cursor()
-	db_query = "INSERT INTO players VALUES(%(school)s, %(name)s, %(nick)s, %(active)s, %(rating)s, " \
+	db_query = "INSERT INTO ayd_players VALUES(%(school)s, %(name)s, %(nick)s, %(active)s, %(rating)s, " \
 				"%(profile_link)s, %(check_time)s) ON CONFLICT (nick) DO UPDATE SET rating = excluded.rating, active = excluded.active, check_time = excluded.check_time;"
 	res = db_cur.execute(db_query, player)
 	db_con.commit()	
@@ -279,7 +281,7 @@ if RECREATE_DB:
 # load the players already in the database
 existing_players = {}
 db_cur = db_con.cursor()
-db_cur.execute("SELECT nick, rating, active from players;")
+db_cur.execute("SELECT nick, rating, active from ayd_players;")
 existing_players_list = db_cur.fetchall()
 if(len(existing_players_list) > 0):
 	for row in existing_players_list:
@@ -306,7 +308,7 @@ if DEBUG_MODE:
 
 # load the games already in the database
 db_cur = db_con.cursor()
-db_cur.execute("SELECT sgf_filename from games;")
+db_cur.execute("SELECT sgf_filename from ayd_games;")
 processed_games_list = db_cur.fetchall()
 if(len(processed_games_list) > 0):
 	processed_games = [e for l in processed_games_list for e in l]
@@ -322,7 +324,7 @@ if DEBUG_MODE:
 
 # load tournaments from the database
 db_cur = db_con.cursor()
-db_cur.execute("SELECT tournament_id from tournaments;")
+db_cur.execute("SELECT tournament_id from ayd_tournaments;")
 tournaments_list = db_cur.fetchall()
 if(len(processed_games_list) > 0):
 	tournaments = [e for l in tournaments_list for e in l]
@@ -360,7 +362,7 @@ for player in players_to_update:
 						time.sleep(WAIT_TIME)
 					urlretrieve(game['game_link'], GAME_FOLDER + game['sgf_filename'])
 				else:
-					if DEBUG_MODE:
+					if DEBUG_MODE and DEBUG_LEVEL > 1:
 						print "[download] found %s is already downloaded, skipping" % (game['sgf_filename'])
 			
 
