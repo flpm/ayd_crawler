@@ -24,7 +24,7 @@ import zipfile
 GAME_FOLDER = "./ayd_games/"
 OUTPUT_FOLDER = "./output/"
 
-DATABASE_NAME = "ayd"
+DATABASE_NAME = "ayd2"
 DATABASE_HOST = 'localhost'
 USERNAME = "felipe"
 PASSWORD = None
@@ -52,7 +52,7 @@ months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oc
 # load the tournaments from the database
 tournaments_list = []
 db_cur = db_con.cursor()
-db_cur.execute("select season, league, month, year, tournament_id from tournaments where school = 'AYD';")
+db_cur.execute("select season, league, month, year, tournament_id from ayd_tournaments where school = 'AYD';")
 tournaments_list = db_cur.fetchall()
 
 if DEBUG_MODE:
