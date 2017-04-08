@@ -33,7 +33,7 @@ DOWNLOAD_GAMES = True
 GAME_FOLDER = "./ayd_games/"
 WAIT_TIME = 1
 
-DATABASE_NAME = "ayd2"
+DATABASE_NAME = "ayd"
 DATABASE_HOST = 'localhost'
 USERNAME = "felipe"
 PASSWORD = None
@@ -157,6 +157,7 @@ def parse_player_profile_page(profile_url, download_games = False):
 			game['white'] = cells[3].get_text()
 			game['black'] = cells[4].get_text()
 			game['result'] = cells[5].get_text()
+
 			result = game['result'].split("+")
 			game['win_score'] = result[1].lower()
 			game['win_color'] = expand_color(result[0])
@@ -170,7 +171,7 @@ def parse_player_profile_page(profile_url, download_games = False):
 				game['game_link'] = None
 			game['sgf_filename'] =  game['white'] + "_" + game['black'] + "_" + str(game['tournament_id']) + ".sgf"
 
-			game['rating'] = cells[6].get_text()
+			game['rating'] = int(cells[6].get_text())
 			game['change'] = cells[7].get_text()
 
 		# initial rate set or rate changing row
@@ -185,8 +186,11 @@ def parse_player_profile_page(profile_url, download_games = False):
 			game['win_score'] = None
 			game['win_color'] = None
 			game['game_link'] = None
-			game['rating'] = cells[4].get_text()
+			game['rating'] = int(cells[4].get_text())
 			game['change'] = None
+			game['player_name'] = player_name
+
+		game['player_name'] = player_name
 
 		all_games.append(game)
 
@@ -206,6 +210,20 @@ def create_DB_structure():
 				 "year SMALLINT, " \
 	             "tournament_link TEXT, " \
 	             "tournament_id SMALLINT primary key);\n"
+
+	db_script += "DROP TABLE IF EXISTS \"ayd_ratings\";\n"
+	db_script += "CREATE TABLE \"ayd_ratings\"(" \
+				 "player TEXT, " \
+				 "school TEXT, " \
+				 "season SMALLINT, " \
+				 "tournament TEXT, " \
+				 "round TEXT, " \
+				 "league TEXT, " \
+				 "month SMALLINT, " \
+				 "year SMALLINT, " \
+	             "tournament_id SMALLINT, "\
+	             "rating INTEGER, " \
+	             "PRIMARY KEY (player, tournament_id, round));\n"
 
 	db_script += "DROP TABLE IF EXISTS \"ayd_players\";\n"
 	db_script += "CREATE TABLE \"ayd_players\"(" \
@@ -259,6 +277,13 @@ def insert_player(player):
 	db_query = "INSERT INTO ayd_players VALUES(%(school)s, %(name)s, %(nick)s, %(active)s, %(rating)s, " \
 				"%(profile_link)s, %(check_time)s) ON CONFLICT (nick) DO UPDATE SET rating = excluded.rating, active = excluded.active, check_time = excluded.check_time;"
 	res = db_cur.execute(db_query, player)
+	db_con.commit()
+
+def insert_rating(ratings):
+	db_cur = db_con.cursor()
+	db_query = "INSERT INTO ayd_ratings VALUES(%(player)s, %(school)s, %(season)s, %(tournament)s, %(round)s, %(league)s, " \
+				"%(month)s, %(year)s, %(tournament_id)s, %(rating)s) ON CONFLICT DO NOTHING;"
+	res = db_cur.execute(db_query, ratings)
 	db_con.commit()	
 
 
@@ -382,6 +407,19 @@ for player in players_to_update:
 				insert_tournament(tournament_record)
 				tournaments.append(game['tournament_id'])
 
+			rating_record = {
+				'player': game['player_name'],
+				'school': game['school'],
+				'season': game['season'],
+				'tournament': game['tournament'],
+				'tournament_id': game['tournament_id'],
+				'league': game['league'],
+				'month': game['month'],
+				'year': game['year'],
+				'round': game['round'],
+				'rating': game['rating']
+			}
+
 			game_record = {
 				'school': game['school'],
 				'season': game['season'],
@@ -405,6 +443,8 @@ for player in players_to_update:
 			if DEBUG_MODE:
 				print "[game] inserting %s into the database" % (game['sgf_filename'])
 			insert_game(game_record)
+			insert_rating(rating_record)
+
 		else:
 			if DEBUG_MODE:
 				print "[%s] game: %s already processed, skipping" % (player['nick'], game['sgf_filename'])
