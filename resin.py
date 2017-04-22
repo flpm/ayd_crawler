@@ -130,14 +130,14 @@ def parse_player_profile_page(profile_url, download_games = False):
 			game['tournament_link'] = None
 			game['tournament_id'] = None
 
-		tournament_details = re.match(r'^(AYD|EYD)? ?League (\w), (\w+) (\d+)$', game['tournament'])
+		tournament_details = re.match(r'^(AYD|EYD)? ?League (\w), ([\w|-]+) (\d+)$', game['tournament'])
 
 		if tournament_details:
 			game['school'] = tournament_details.group(1)
 			if game['school'] is None:
 				game['school'] = "EYD"
 			game['league'] = tournament_details.group(2)
-			game['month'] = month_to_digit[tournament_details.group(3)]
+			game['month'] = month_to_digit[tournament_details.group(3).split('-')[-1]]  # .split('-')[-1] in case of e.g. April-May, pick May
 			game['year'] = tournament_details.group(4)
 		else:
 			game['school'] = None
@@ -282,7 +282,7 @@ def insert_player(player):
 def insert_rating(ratings):
 	db_cur = db_con.cursor()
 	db_query = "INSERT INTO ayd_ratings VALUES(%(player)s, %(school)s, %(season)s, %(tournament)s, %(round)s, %(league)s, " \
-				"%(month)s, %(year)s, %(tournament_id)s, %(rating)s) ON CONFLICT DO NOTHING;"
+				"%(month)s, %(year)s, %(tournament_id)s, %(rating)s);"
 	res = db_cur.execute(db_query, ratings)
 	db_con.commit()	
 
@@ -407,19 +407,6 @@ for player in players_to_update:
 				insert_tournament(tournament_record)
 				tournaments.append(game['tournament_id'])
 
-			rating_record = {
-				'player': game['player_name'],
-				'school': game['school'],
-				'season': game['season'],
-				'tournament': game['tournament'],
-				'tournament_id': game['tournament_id'],
-				'league': game['league'],
-				'month': game['month'],
-				'year': game['year'],
-				'round': game['round'],
-				'rating': game['rating']
-			}
-
 			game_record = {
 				'school': game['school'],
 				'season': game['season'],
@@ -442,13 +429,27 @@ for player in players_to_update:
 			#games_to_insert.append(game_record)
 			if DEBUG_MODE:
 				print "[game] inserting %s into the database" % (game['sgf_filename'])
-			insert_game(game_record)
-			insert_rating(rating_record)
+			insert_game(game_record)	
 
 		else:
 			if DEBUG_MODE:
 				print "[%s] game: %s already processed, skipping" % (player['nick'], game['sgf_filename'])
 	
+		# Add ratings
+		rating_record = {
+			'player': game['player_name'],
+			'school': game['school'],
+			'season': game['season'],
+			'tournament': game['tournament'],
+			'tournament_id': game['tournament_id'],
+			'league': game['league'],
+			'month': game['month'],
+			'year': game['year'],
+			'round': game['round'],
+			'rating': game['rating']
+		}
+		insert_rating(rating_record)
+
 	#if DEBUG_MODE:
 		#print "[%s] game: %d games, %d to be inserted" % (player['nick'], len(player_games), games_processed)
 
